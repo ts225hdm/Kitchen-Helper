@@ -5,13 +5,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
 import app.models  # noqa: F401 — ensures all models are registered
-from app.routers import food_items, nutrition, recipes, ai, grocery, eating_out, spending, users
+from app.routers import food_items, nutrition, recipes, ai, grocery, eating_out, spending, users, food_data
+from app.services.food_data_loader import load_food_data
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Auto-create all tables on startup (dev-friendly; in prod use alembic migrations)
     Base.metadata.create_all(bind=engine)
+    # Seed food data from CSV on first run
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        count = load_food_data(db)
+        if count:
+            print(f"Loaded {count} food items from CSV")
+    finally:
+        db.close()
     yield
 
 
@@ -33,6 +43,7 @@ app.include_router(ai.router, prefix="/api")
 app.include_router(grocery.router, prefix="/api")
 app.include_router(eating_out.router, prefix="/api")
 app.include_router(spending.router, prefix="/api")
+app.include_router(food_data.router, prefix="/api")
 
 
 @app.get("/health")

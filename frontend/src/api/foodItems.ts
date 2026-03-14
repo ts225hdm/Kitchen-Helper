@@ -26,7 +26,9 @@ export interface FoodItem {
   nutrition?: Nutrition;
 }
 
-export type CreateFoodItem = Omit<FoodItem, 'id' | 'created_at' | 'updated_at' | 'nutrition'>;
+export type CreateFoodItem = Omit<FoodItem, 'id' | 'created_at' | 'updated_at' | 'nutrition'> & {
+  food_data_id?: string;
+};
 
 export const foodItemsApi = {
   getAll: () => client.get<FoodItem[]>('/api/food-items').then((r) => r.data),

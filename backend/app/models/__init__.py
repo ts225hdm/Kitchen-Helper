@@ -4,6 +4,7 @@ from app.models.nutrition import Nutrition
 from app.models.recipe import Recipe, RecipeIngredient, RecipeStep
 from app.models.grocery import GroceryTrip, GroceryTripItem
 from app.models.eating_out import EatingOutExpense
+from app.models.food_data import FoodData, CanonicalFood
 
 __all__ = [
     "User", "Role", "UserRole",
@@ -11,4 +12,5 @@ __all__ = [
     "Recipe", "RecipeIngredient", "RecipeStep",
     "GroceryTrip", "GroceryTripItem",
     "EatingOutExpense",
+    "FoodData", "CanonicalFood",
 ]

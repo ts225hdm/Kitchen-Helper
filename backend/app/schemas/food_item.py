@@ -18,7 +18,7 @@ class FoodItemBase(BaseModel):
 
 
 class FoodItemCreate(FoodItemBase):
-    pass
+    food_data_id: Optional[str] = None
 
 
 class FoodItemUpdate(BaseModel):
@@ -30,6 +30,7 @@ class FoodItemUpdate(BaseModel):
     notes: Optional[str] = None
     price_per_unit: Optional[float] = None
     price_currency: Optional[str] = None
+    food_data_id: Optional[str] = None
 
 
 class FoodItemOut(FoodItemBase):

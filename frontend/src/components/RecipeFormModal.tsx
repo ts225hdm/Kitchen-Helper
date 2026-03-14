@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CreateRecipe } from '../api/recipes';
 import { FoodItem } from '../api/foodItems';
+import { foodDataApi, FoodDataItem } from '../api/foodData';
 
 interface Props {
   foodItems: FoodItem[];
@@ -9,6 +10,83 @@ interface Props {
 }
 
 const UNITS = ['g', 'kg', 'ml', 'l', 'pieces', 'tbsp', 'tsp', 'cup', 'oz', 'lb'];
+
+function IngredientNameInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (name: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<FoodDataItem[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleChange = (v: string) => {
+    onChange(v);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (v.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const results = await foodDataApi.search(v, 6);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 250);
+  };
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <input
+        type="text"
+        required
+        placeholder="Ingredient"
+        value={value}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+        className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
+        autoComplete="off"
+      />
+      {showSuggestions && (
+        <ul className="absolute z-30 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+          {suggestions.map((fd) => (
+            <li
+              key={fd.api_food_id}
+              onClick={() => {
+                const bestName = fd.canonical_food_name || fd.display_name || fd.canonical_name;
+                onChange(bestName);
+                setShowSuggestions(false);
+              }}
+              className="px-2 py-1.5 hover:bg-primary-50 cursor-pointer text-xs border-b border-gray-50 last:border-0"
+            >
+              <span className="font-medium text-gray-800">{fd.canonical_food_name || fd.display_name}</span>
+              {fd.calories_kcal != null && (
+                <span className="text-gray-400 ml-1">{fd.calories_kcal} kcal/100g</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export default function RecipeFormModal({ foodItems, onSave, onClose }: Props) {
   const [form, setForm] = useState({
@@ -152,13 +230,9 @@ export default function RecipeFormModal({ foodItems, onSave, onClose }: Props) {
                     </select>
                   </div>
                   <div className="col-span-3">
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ingredient"
+                    <IngredientNameInput
                       value={ing.name}
-                      onChange={(e) => setIngredients(ingredients.map((it, idx) => idx === i ? { ...it, name: e.target.value } : it))}
-                      className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      onChange={(name) => setIngredients(ingredients.map((it, idx) => idx === i ? { ...it, name, food_item_id: '' } : it))}
                     />
                   </div>
                   <div className="col-span-2">
@@ -180,7 +254,7 @@ export default function RecipeFormModal({ foodItems, onSave, onClose }: Props) {
                   </div>
                   <div className="col-span-1 flex justify-center">
                     {ingredients.length > 1 && (
-                      <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 hover:text-red-600 text-sm">×</button>
+                      <button type="button" onClick={() => removeIngredient(i)} className="text-red-400 hover:text-red-600 text-sm">&times;</button>
                     )}
                   </div>
                 </div>
@@ -209,7 +283,7 @@ export default function RecipeFormModal({ foodItems, onSave, onClose }: Props) {
                     placeholder={`Step ${step.step_number}...`}
                   />
                   {steps.length > 1 && (
-                    <button type="button" onClick={() => removeStep(i)} className="text-red-400 hover:text-red-600 mt-1.5">×</button>
+                    <button type="button" onClick={() => removeStep(i)} className="text-red-400 hover:text-red-600 mt-1.5">&times;</button>
                   )}
                 </div>
               ))}
