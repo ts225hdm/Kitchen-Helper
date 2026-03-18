@@ -18,7 +18,10 @@ class FoodItemBase(BaseModel):
 
 
 class FoodItemCreate(FoodItemBase):
-    food_data_id: Optional[str] = None
+    calories_kcal: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
 
 
 class FoodItemUpdate(BaseModel):
@@ -30,7 +33,10 @@ class FoodItemUpdate(BaseModel):
     notes: Optional[str] = None
     price_per_unit: Optional[float] = None
     price_currency: Optional[str] = None
-    food_data_id: Optional[str] = None
+    calories_kcal: Optional[float] = None
+    protein_g: Optional[float] = None
+    carbs_g: Optional[float] = None
+    fat_g: Optional[float] = None
 
 
 class FoodItemOut(FoodItemBase):

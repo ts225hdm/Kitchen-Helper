@@ -37,6 +37,7 @@ class GroceryTripItem(Base):
     quantity: Mapped[float] = mapped_column(Float, nullable=False)
     unit: Mapped[str] = mapped_column(String(50), nullable=False)
     price_per_unit: Mapped[float] = mapped_column(Float, nullable=False)
+    discount: Mapped[float] = mapped_column(Float, default=0, nullable=False)
     total_price: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String(10), default="EUR")
 

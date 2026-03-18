@@ -27,7 +27,10 @@ export interface FoodItem {
 }
 
 export type CreateFoodItem = Omit<FoodItem, 'id' | 'created_at' | 'updated_at' | 'nutrition'> & {
-  food_data_id?: string;
+  calories_kcal?: number;
+  protein_g?: number;
+  carbs_g?: number;
+  fat_g?: number;
 };
 
 export const foodItemsApi = {
@@ -37,5 +40,4 @@ export const foodItemsApi = {
   update: (id: string, data: Partial<CreateFoodItem>) =>
     client.patch<FoodItem>(`/api/food-items/${id}`, data).then((r) => r.data),
   delete: (id: string) => client.delete(`/api/food-items/${id}`),
-  fetchNutrition: (id: string) => client.post<Nutrition>(`/api/nutrition/fetch/${id}`).then((r) => r.data),
 };

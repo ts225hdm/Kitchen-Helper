@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { recipesApi, Recipe, CreateRecipe } from '../api/recipes';
 import { foodItemsApi, FoodItem } from '../api/foodItems';
 import RecipeFormModal from '../components/RecipeFormModal';
 import { useToast } from '../components/Toast';
 
 export default function Recipes() {
+  const { t } = useTranslation();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,11 +23,11 @@ export default function Recipes() {
   useEffect(() => { load(); }, []);
 
   const handleDelete = async (id: string) => {
-    const confirmed = await toast.confirm('Delete this recipe?');
+    const confirmed = await toast.confirm(t('recipes.deleteConfirm'));
     if (!confirmed) return;
     await recipesApi.delete(id);
     setRecipes((prev) => prev.filter((r) => r.id !== id));
-    toast.success('Recipe deleted');
+    toast.success(t('recipes.deleted'));
   };
 
   const handleSave = async (data: CreateRecipe) => {
@@ -38,26 +40,18 @@ export default function Recipes() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Recipes</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">{recipes.length} saved recipes</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('recipes.title')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{recipes.length} {t('recipes.savedRecipes')}</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            to="/ai-recommendations"
-            className="px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors text-sm font-medium"
-          >
-            AI Suggestions
-          </Link>
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium"
-          >
-            + New Recipe
-          </button>
-        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium min-h-[44px]"
+        >
+          {t('recipes.newRecipe')}
+        </button>
       </div>
 
       {recipes.length === 0 ? (
@@ -67,8 +61,8 @@ export default function Recipes() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
           </div>
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">No recipes yet</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Create your first recipe or get AI suggestions</p>
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">{t('recipes.noRecipes')}</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('recipes.noRecipesHint')}</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -85,24 +79,24 @@ export default function Recipes() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">{recipe.description}</p>
                 )}
                 <div className="flex items-center gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500">
-                  {recipe.prep_time_min && <span>Prep: {recipe.prep_time_min}m</span>}
-                  {recipe.cook_time_min && <span>Cook: {recipe.cook_time_min}m</span>}
-                  <span>{recipe.servings} serving{recipe.servings !== 1 ? 's' : ''}</span>
+                  {recipe.prep_time_min && <span>{t('recipes.prep')}: {recipe.prep_time_min}m</span>}
+                  {recipe.cook_time_min && <span>{t('recipes.cook')}: {recipe.cook_time_min}m</span>}
+                  <span>{recipe.servings} {recipe.servings !== 1 ? t('common.servings') : t('common.serving')}</span>
                 </div>
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{recipe.ingredients.length} ingredients &middot; {recipe.steps.length} steps</p>
               </div>
-              <div className="px-5 pb-4 flex gap-2">
+              <div className="px-4 sm:px-5 pb-4 flex gap-2">
                 <Link
                   to={`/recipes/${recipe.id}`}
-                  className="flex-1 text-center text-sm px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors font-medium"
+                  className="flex-1 text-center text-sm px-3 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors font-medium min-h-[44px] flex items-center justify-center"
                 >
-                  View
+                  {t('recipes.view')}
                 </Link>
                 <button
                   onClick={() => handleDelete(recipe.id)}
-                  className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors min-h-[44px]"
                 >
-                  Delete
+                  {t('common.delete')}
                 </button>
               </div>
             </div>

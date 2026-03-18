@@ -8,6 +8,7 @@ export interface GroceryTripItem {
   quantity: number;
   unit: string;
   price_per_unit: number;
+  discount: number;
   total_price: number;
   currency: string;
 }
@@ -29,6 +30,7 @@ export interface CreateGroceryTripItem {
   quantity: number;
   unit: string;
   price_per_unit: number;
+  discount?: number;
   currency?: string;
 }
 

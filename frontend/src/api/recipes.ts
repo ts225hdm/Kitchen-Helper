@@ -41,6 +41,16 @@ export interface CreateRecipe {
   steps: { step_number: number; instruction: string }[];
 }
 
+export interface RecipeSuggestion {
+  name: string;
+  description: string;
+  servings: number;
+  prep_time_min: number;
+  cook_time_min: number;
+  ingredients: { name: string; quantity: number; unit: string }[];
+  steps: { step_number: number; instruction: string }[];
+}
+
 export const recipesApi = {
   getAll: () => client.get<Recipe[]>('/api/recipes').then((r) => r.data),
   getOne: (id: string) => client.get<Recipe>(`/api/recipes/${id}`).then((r) => r.data),
@@ -48,7 +58,6 @@ export const recipesApi = {
   update: (id: string, data: Partial<CreateRecipe>) =>
     client.patch<Recipe>(`/api/recipes/${id}`, data).then((r) => r.data),
   delete: (id: string) => client.delete(`/api/recipes/${id}`),
-  getRecommendations: () => client.post('/api/ai/recommend').then((r) => r.data),
-  saveRecommendation: (recipe: object) =>
-    client.post<Recipe>('/api/ai/recommend/save', recipe).then((r) => r.data),
+  getRecommendations: (lang = 'en', itemIds?: string[]) =>
+    client.post<{ recipes: RecipeSuggestion[] }>(`/api/ai/recommendations?lang=${lang}`, { item_ids: itemIds || null }, { timeout: 60000 }).then((r) => r.data.recipes),
 };

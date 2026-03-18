@@ -14,7 +14,7 @@ def _apply_items(trip: GroceryTrip, items_data, db: Session):
     db.query(GroceryTripItem).filter(GroceryTripItem.trip_id == trip.id).delete()
     for item in items_data:
         d = item.model_dump()
-        d["total_price"] = round(d["quantity"] * d["price_per_unit"], 4)
+        # total_price is already computed by the schema validator (qty * price - discount)
         db.add(GroceryTripItem(trip_id=trip.id, **d))
 
 

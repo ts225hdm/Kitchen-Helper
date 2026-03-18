@@ -1,152 +1,102 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { recipesApi, Recipe } from '../api/recipes';
-import { foodDataApi, RecipeNutrition } from '../api/foodData';
+import { useToast } from '../components/Toast';
 
 export default function RecipeDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
+  const { t } = useTranslation();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
-  const [nutrition, setNutrition] = useState<RecipeNutrition | null>(null);
-  const [nutritionLoading, setNutritionLoading] = useState(false);
 
   useEffect(() => {
     if (id) {
       recipesApi.getOne(id).then(setRecipe).finally(() => setLoading(false));
-      setNutritionLoading(true);
-      foodDataApi.getRecipeNutrition(id).then(setNutrition).catch(() => {}).finally(() => setNutritionLoading(false));
     }
   }, [id]);
 
   const handleDelete = async () => {
-    if (!confirm('Delete this recipe?')) return;
+    const confirmed = await toast.confirm(t('recipes.deleteConfirm'));
+    if (!confirmed) return;
     await recipesApi.delete(id!);
+    toast.success(t('recipes.deleted'));
     navigate('/recipes');
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>;
+    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" /></div>;
   }
 
-  if (!recipe) return <div className="text-center py-16 text-gray-400">Recipe not found</div>;
+  if (!recipe) return <div className="text-center py-16 text-gray-400 dark:text-gray-500">{t('common.noResults')}</div>;
 
   const totalTime = (recipe.prep_time_min || 0) + (recipe.cook_time_min || 0);
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <Link to="/recipes" className="text-sm text-primary-600 hover:underline">&larr; Back to Recipes</Link>
-          <h1 className="text-2xl font-bold text-gray-900 mt-2">{recipe.name}</h1>
-          {recipe.is_ai_generated && (
-            <span className="inline-block text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium mt-1">AI Generated</span>
-          )}
-          {recipe.description && <p className="text-gray-500 mt-2">{recipe.description}</p>}
+          <Link to="/recipes" className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline inline-flex items-center gap-1 py-1">&larr; {t('recipes.backToRecipes')}</Link>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">{recipe.name}</h1>
+          {recipe.description && <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">{recipe.description}</p>}
         </div>
         <button
           onClick={handleDelete}
-          className="px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 border border-red-200 rounded-lg transition-colors flex-shrink-0"
+          className="px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-lg transition-colors flex-shrink-0 min-h-[40px]"
         >
-          Delete
+          {t('common.delete')}
         </button>
       </div>
 
-      <div className="flex items-center gap-6 text-sm text-gray-500 bg-gray-50 rounded-xl p-4">
+      <div className="flex items-center gap-4 sm:gap-6 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-3 sm:p-4">
         <div className="text-center">
-          <p className="font-semibold text-gray-900 text-lg">{recipe.servings}</p>
-          <p>Servings</p>
+          <p className="font-semibold text-gray-900 dark:text-white text-lg">{recipe.servings}</p>
+          <p>{t('common.servings')}</p>
         </div>
         {recipe.prep_time_min && (
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-lg">{recipe.prep_time_min}m</p>
-            <p>Prep</p>
+            <p className="font-semibold text-gray-900 dark:text-white text-lg">{recipe.prep_time_min}m</p>
+            <p>{t('recipes.prep')}</p>
           </div>
         )}
         {recipe.cook_time_min && (
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-lg">{recipe.cook_time_min}m</p>
-            <p>Cook</p>
+            <p className="font-semibold text-gray-900 dark:text-white text-lg">{recipe.cook_time_min}m</p>
+            <p>{t('recipes.cook')}</p>
           </div>
         )}
         {totalTime > 0 && (
           <div className="text-center">
-            <p className="font-semibold text-gray-900 text-lg">{totalTime}m</p>
-            <p>Total</p>
+            <p className="font-semibold text-gray-900 dark:text-white text-lg">{totalTime}m</p>
+            <p>{t('recipes.total')}</p>
           </div>
         )}
       </div>
 
-      {/* Nutrition Summary */}
-      {nutritionLoading ? (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5 text-center text-sm text-green-600">
-          Calculating nutrition...
-        </div>
-      ) : nutrition && nutrition.matched_count > 0 && (
-        <div className="bg-green-50 border border-green-200 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-gray-900">Nutrition Facts</h2>
-            <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">
-              {nutrition.matched_count}/{nutrition.total_count} ingredients matched
-            </span>
-          </div>
-
-          {/* Per serving */}
-          <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide font-medium">Per serving ({nutrition.servings} servings)</p>
-          <div className="grid grid-cols-4 gap-3 mb-4">
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-xl font-bold text-gray-900">{nutrition.per_serving_calories}</p>
-              <p className="text-xs text-gray-500">kcal</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-xl font-bold text-blue-600">{nutrition.per_serving_protein_g}g</p>
-              <p className="text-xs text-gray-500">Protein</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-xl font-bold text-amber-600">{nutrition.per_serving_carbs_g}g</p>
-              <p className="text-xs text-gray-500">Carbs</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 text-center shadow-sm">
-              <p className="text-xl font-bold text-red-500">{nutrition.per_serving_fat_g}g</p>
-              <p className="text-xs text-gray-500">Fat</p>
-            </div>
-          </div>
-
-          {/* Total */}
-          <p className="text-xs text-gray-400 mb-1">Total: {nutrition.total_calories} kcal &middot; {nutrition.total_protein_g}g protein &middot; {nutrition.total_carbs_g}g carbs &middot; {nutrition.total_fat_g}g fat</p>
-        </div>
-      )}
-
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Ingredients</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('recipes.ingredients')}</h2>
         <ul className="space-y-2">
-          {recipe.ingredients.map((ing) => {
-            const ingNutrition = nutrition?.ingredients.find((n) => n.name === ing.name);
-            return (
-              <li key={ing.id} className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${ingNutrition?.matched ? 'bg-green-400' : 'bg-gray-300'}`} />
-                <span className="font-medium text-gray-700">{ing.quantity} {ing.unit}</span>
-                <span className="text-gray-900 flex-1">{ing.name}</span>
-                {ingNutrition?.matched && (
-                  <span className="text-xs text-gray-400">
-                    {ingNutrition.calories_kcal} kcal
-                  </span>
-                )}
-              </li>
-            );
-          })}
+          {recipe.ingredients.map((ing) => (
+            <li key={ing.id} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <span className="w-2 h-2 rounded-full flex-shrink-0 bg-emerald-400" />
+              <span className="font-medium text-gray-700 dark:text-gray-300">{ing.quantity} {t(`units.${ing.unit}`, ing.unit)}</span>
+              <span className="text-gray-900 dark:text-white flex-1">{ing.name}</span>
+            </li>
+          ))}
         </ul>
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Instructions</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('recipes.instructions')}</h2>
         <ol className="space-y-3">
           {recipe.steps.map((step) => (
-            <li key={step.id} className="flex gap-4 p-4 bg-white border border-gray-200 rounded-lg">
-              <span className="flex-shrink-0 w-7 h-7 bg-primary-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+            <li key={step.id} className="flex gap-4 p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg">
+              <span className="flex-shrink-0 w-7 h-7 bg-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                 {step.step_number}
               </span>
-              <p className="text-gray-700 leading-relaxed">{step.instruction}</p>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{step.instruction}</p>
             </li>
           ))}
         </ol>

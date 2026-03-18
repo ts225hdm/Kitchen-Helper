@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { foodItemsApi, FoodItem } from '../api/foodItems';
 import { recipesApi, Recipe } from '../api/recipes';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,32 +41,32 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Welcome to your Kitchen Helper</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('dashboard.title')}</h1>
+        <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-1">{t('dashboard.welcome')}</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Total Items"
+          title={t('dashboard.totalItems')}
           value={foodItems.length}
-          description="in your kitchen"
+          description={t('dashboard.inYourKitchen')}
           color="emerald"
           href="/kitchen"
         />
         <StatCard
-          title="Expiring Soon"
+          title={t('dashboard.expiringSoon')}
           value={expiringItems.length}
-          description="within 3 days"
+          description={t('dashboard.within3days')}
           color="amber"
           href="/kitchen"
         />
         <StatCard
-          title="Recipes"
+          title={t('dashboard.recipes')}
           value={recipes.length}
-          description="saved recipes"
+          description={t('dashboard.savedRecipes')}
           color="blue"
           href="/recipes"
         />
@@ -73,11 +75,11 @@ export default function Dashboard() {
       {/* Alerts */}
       {expiredItems.length > 0 && (
         <div className="bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4">
-          <h3 className="font-semibold text-red-800 dark:text-red-400 mb-2">Expired Items</h3>
+          <h3 className="font-semibold text-red-800 dark:text-red-400 mb-2">{t('dashboard.expiredItems')}</h3>
           <ul className="space-y-1">
             {expiredItems.map((item) => (
               <li key={item.id} className="text-sm text-red-700 dark:text-red-300">
-                {item.name} — expired {new Date(item.expiry_date!).toLocaleDateString()}
+                {item.name} — {t('dashboard.expired')} {new Date(item.expiry_date!).toLocaleDateString()}
               </li>
             ))}
           </ul>
@@ -86,7 +88,7 @@ export default function Dashboard() {
 
       {expiringItems.length > 0 && (
         <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
-          <h3 className="font-semibold text-amber-800 dark:text-amber-400 mb-2">Expiring Soon</h3>
+          <h3 className="font-semibold text-amber-800 dark:text-amber-400 mb-2">{t('dashboard.expiringSoon')}</h3>
           <ul className="space-y-1">
             {expiringItems.map((item) => (
               <li key={item.id} className="text-sm text-amber-700 dark:text-amber-300">
@@ -94,29 +96,23 @@ export default function Dashboard() {
               </li>
             ))}
           </ul>
-          <Link
-            to="/ai-recommendations"
-            className="inline-block mt-3 text-sm font-medium text-amber-800 dark:text-amber-400 underline hover:text-amber-900 dark:hover:text-amber-300"
-          >
-            Get AI recipe suggestions using expiring ingredients
-          </Link>
         </div>
       )}
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <QuickAction
-          title="Manage Kitchen"
-          description="Add, edit, or remove food items and view nutrition data"
+          title={t('dashboard.manageKitchen')}
+          description={t('dashboard.manageKitchenDesc')}
           href="/kitchen"
           icon="M4 7h16M4 7V5a1 1 0 011-1h14a1 1 0 011 1v2M4 7l1 12a2 2 0 002 2h10a2 2 0 002-2l1-12"
           color="emerald"
         />
         <QuickAction
-          title="AI Chef"
-          description="Get recipe recommendations based on what's in your fridge"
-          href="/ai-recommendations"
-          icon="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+          title={t('dashboard.groceryTrips')}
+          description={t('dashboard.groceryTripsDesc')}
+          href="/grocery-trips"
+          icon="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
           color="purple"
         />
       </div>
@@ -135,9 +131,9 @@ function StatCard({
     blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-500/20',
   };
   return (
-    <Link to={href} className={`rounded-xl border p-5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow ${colors[color]}`}>
+    <Link to={href} className={`rounded-xl border p-4 sm:p-5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow active:scale-[0.98] ${colors[color]}`}>
       <p className="text-sm font-medium opacity-75">{title}</p>
-      <p className="text-3xl font-bold mt-1">{value}</p>
+      <p className="text-2xl sm:text-3xl font-bold mt-1">{value}</p>
       <p className="text-sm opacity-75 mt-1">{description}</p>
     </Link>
   );
@@ -151,7 +147,7 @@ function QuickAction({ title, description, href, icon, color }: { title: string;
   return (
     <Link
       to={href}
-      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow flex items-start gap-4"
+      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 sm:p-5 hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow flex items-start gap-3 sm:gap-4 active:scale-[0.98]"
     >
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${iconColors[color]}`}>
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>

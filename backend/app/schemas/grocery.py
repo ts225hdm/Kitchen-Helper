@@ -10,11 +10,12 @@ class GroceryTripItemIn(BaseModel):
     quantity: float
     unit: str
     price_per_unit: float
+    discount: float = 0.0
     currency: str = "EUR"
 
     @model_validator(mode="after")
     def compute_total(self):
-        self.total_price = round(self.quantity * self.price_per_unit, 4)
+        self.total_price = round(self.quantity * self.price_per_unit - self.discount, 4)
         return self
 
     total_price: float = 0.0
@@ -28,6 +29,7 @@ class GroceryTripItemOut(BaseModel):
     quantity: float
     unit: str
     price_per_unit: float
+    discount: float
     total_price: float
     currency: str
     model_config = {"from_attributes": True}

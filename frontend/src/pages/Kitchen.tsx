@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { foodItemsApi, FoodItem, CreateFoodItem } from '../api/foodItems';
 import FoodItemModal from '../components/FoodItemModal';
-import NutritionCard from '../components/NutritionCard';
 import { useToast } from '../components/Toast';
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -19,6 +19,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function Kitchen() {
+  const { t } = useTranslation();
   const [items, setItems] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -44,11 +45,11 @@ export default function Kitchen() {
   };
 
   const handleDelete = async (id: string) => {
-    const confirmed = await toast.confirm('Delete this food item?');
+    const confirmed = await toast.confirm(t('kitchen.deleteConfirm'));
     if (!confirmed) return;
     await foodItemsApi.delete(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
-    toast.success('Item deleted');
+    toast.success(t('kitchen.deleted'));
   };
 
   const filtered = items.filter((item) => {
@@ -68,48 +69,50 @@ export default function Kitchen() {
 
   const categories = [...new Set(items.map((i) => i.category).filter(Boolean))];
 
+  const catLabel = (cat: string) => t(`categories.${cat}`, cat.charAt(0).toUpperCase() + cat.slice(1));
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Kitchen</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('kitchen.title')}</h1>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
-            {items.length} item{items.length !== 1 ? 's' : ''} tracked
+            {items.length} {t('common.items')} {t('kitchen.tracked')}
             {items.filter(isExpired).length > 0 && (
               <span className="text-red-500 ml-2">
-                {items.filter(isExpired).length} expired
+                {items.filter(isExpired).length} {t('kitchen.expired')}
               </span>
             )}
           </p>
         </div>
         <button
           onClick={() => { setEditItem(undefined); setShowModal(true); }}
-          className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-semibold shadow-sm"
+          className="px-3 sm:px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-semibold shadow-sm min-h-[44px]"
         >
-          + Add Item
+          {t('kitchen.addItem')}
         </button>
       </div>
 
       {/* Search & Filter */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="flex-1 min-w-48 relative">
+      <div className="flex gap-2 sm:gap-3">
+        <div className="flex-1 min-w-0 relative">
           <input
             type="text"
-            placeholder="Search your kitchen..."
+            placeholder={t('kitchen.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-gray-700 focus:border-transparent transition-colors"
+            className="w-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 sm:px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-gray-700 focus:border-transparent transition-colors"
           />
         </div>
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-gray-700 transition-colors"
+          className="border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-xl px-3 sm:px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white dark:focus:bg-gray-700 transition-colors flex-shrink-0"
         >
-          <option value="">All categories</option>
+          <option value="">{t('kitchen.allCategories')}</option>
           {categories.map((c) => (
-            <option key={c} value={c}>{c!.charAt(0).toUpperCase() + c!.slice(1)}</option>
+            <option key={c} value={c}>{catLabel(c!)}</option>
           ))}
         </select>
       </div>
@@ -127,17 +130,17 @@ export default function Kitchen() {
             </svg>
           </div>
           <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">
-            {search || filterCategory ? 'No items match your search' : 'Your kitchen is empty'}
+            {search || filterCategory ? t('kitchen.noMatch') : t('kitchen.empty')}
           </p>
           <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-            {search || filterCategory ? 'Try a different search term' : 'Add your first food item to get started'}
+            {search || filterCategory ? t('kitchen.noMatchHint') : t('kitchen.emptyHint')}
           </p>
           {!search && !filterCategory && (
             <button
               onClick={() => { setEditItem(undefined); setShowModal(true); }}
               className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 text-sm font-medium transition-colors"
             >
-              + Add Item
+              {t('kitchen.addItem')}
             </button>
           )}
         </div>
@@ -157,23 +160,22 @@ export default function Kitchen() {
               >
                 <div className="p-4">
                   <div className="flex items-start gap-4">
-                    {/* Main info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-gray-900 dark:text-white">{item.name}</h3>
                         {item.category && (
                           <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${CATEGORY_COLORS[item.category] || CATEGORY_COLORS.other}`}>
-                            {item.category}
+                            {catLabel(item.category)}
                           </span>
                         )}
-                        {expired && <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 font-semibold">Expired</span>}
-                        {expiring && !expired && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold">Expiring soon</span>}
+                        {expired && <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 font-semibold">{t('kitchen.expiredBadge')}</span>}
+                        {expiring && !expired && <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-semibold">{t('kitchen.expiringSoonBadge')}</span>}
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        <span className="font-medium text-gray-700 dark:text-gray-300">{item.quantity} {item.unit}</span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{item.quantity} {t(`units.${item.unit}`, item.unit)}</span>
                         {item.price_per_unit != null && (
                           <span className="text-emerald-600 dark:text-emerald-400">
-                            {item.price_per_unit.toFixed(2)} {item.price_currency}/{item.unit}
+                            {item.price_per_unit.toFixed(2)} {item.price_currency}/{t(`units.${item.unit}`, item.unit)}
                           </span>
                         )}
                         {item.expiry_date && (
@@ -184,7 +186,6 @@ export default function Kitchen() {
                       </div>
                       {item.notes && <p className="text-xs text-gray-400 dark:text-gray-500 mt-1.5">{item.notes}</p>}
 
-                      {/* Inline nutrition summary */}
                       {item.nutrition && !expanded && (
                         <button
                           onClick={() => setExpandedId(item.id)}
@@ -194,26 +195,24 @@ export default function Kitchen() {
                           <span>{item.nutrition.protein_g}g P</span>
                           <span>{item.nutrition.carbohydrates_total_g}g C</span>
                           <span>{item.nutrition.fat_total_g}g F</span>
-                          <span className="text-emerald-500">&darr; details</span>
+                          <span className="text-emerald-500">&darr; {t('kitchen.details')}</span>
                         </button>
                       )}
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       {item.nutrition && expanded && (
                         <button
                           onClick={() => setExpandedId(null)}
-                          className="p-2 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs"
-                          title="Hide nutrition"
+                          className="p-2.5 text-gray-300 dark:text-gray-600 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors text-xs min-w-[40px] min-h-[40px] flex items-center justify-center"
                         >
                           &#9650;
                         </button>
                       )}
                       <button
                         onClick={() => { setEditItem(item); setShowModal(true); }}
-                        className="p-2 text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                        title="Edit"
+                        className="p-2.5 text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                        title={t('common.edit')}
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -221,8 +220,8 @@ export default function Kitchen() {
                       </button>
                       <button
                         onClick={() => handleDelete(item.id)}
-                        className="p-2 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-                        title="Delete"
+                        className="p-2.5 text-gray-300 dark:text-gray-600 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                        title={t('common.delete')}
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -232,10 +231,27 @@ export default function Kitchen() {
                   </div>
                 </div>
 
-                {/* Expanded nutrition */}
                 {expanded && item.nutrition && (
                   <div className="px-4 pb-4 border-t border-gray-50 dark:border-gray-800 pt-3">
-                    <NutritionCard nutrition={item.nutrition} />
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{t('nutrition.title')}</h4>
+                        <span className="text-[11px] text-gray-400 dark:text-gray-500">{t('nutrition.per')} {item.nutrition.serving_size_g}g</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-3">
+                        {[
+                          { label: t('nutrition.calories'), value: item.nutrition.calories, unit: 'kcal', color: 'text-gray-900 dark:text-white' },
+                          { label: t('nutrition.protein'), value: item.nutrition.protein_g, unit: 'g', color: 'text-blue-600 dark:text-blue-400' },
+                          { label: t('nutrition.carbs'), value: item.nutrition.carbohydrates_total_g, unit: 'g', color: 'text-amber-600 dark:text-amber-400' },
+                          { label: t('nutrition.fat'), value: item.nutrition.fat_total_g, unit: 'g', color: 'text-red-500 dark:text-red-400' },
+                        ].map(({ label, value, unit, color }) => (
+                          <div key={label} className="text-center">
+                            <p className={`text-lg font-bold ${color}`}>{value.toFixed(0)}</p>
+                            <p className="text-[11px] text-gray-400 dark:text-gray-500">{unit} {label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

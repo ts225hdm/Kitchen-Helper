@@ -2,9 +2,11 @@ from typing import Optional
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
+from sqlalchemy.orm import Session
 import httpx
 
 from app.config import settings
+from app.database import get_db
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -51,3 +53,29 @@ async def get_current_user_id(
         return payload["sub"]
     except JWTError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
+
+
+async def require_premium(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+) -> str:
+    """
+    Validates that the current user has the 'premium' role.
+    In dev mode, always grants premium access.
+    """
+    if not settings.logto_endpoint:
+        return user_id
+
+    from app.models.user import User
+
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User not found")
+
+    roles = {ur.role.name for ur in user.user_roles}
+    if "premium" not in roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Premium subscription required",
+        )
+    return user_id

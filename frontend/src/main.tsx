@@ -1,7 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { LogtoProvider, LogtoConfig } from '@logto/react';
+import AuthSync from './components/AuthSync';
 import App from './App';
+import './i18n';
 import './index.css';
 
 const logtoConfig: LogtoConfig = {
@@ -12,7 +14,9 @@ const logtoConfig: LogtoConfig = {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LogtoProvider config={logtoConfig}>
-      <App />
+      <AuthSync>
+        <App />
+      </AuthSync>
     </LogtoProvider>
   </React.StrictMode>
 );
