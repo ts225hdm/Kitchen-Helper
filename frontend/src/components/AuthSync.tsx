@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { useLogto } from '@logto/react';
 import { setAuthToken } from '../api/client';
 
+const API_RESOURCE = import.meta.env.VITE_LOGTO_API_RESOURCE || undefined;
+
 /**
  * Syncs the Logto access token to the API client.
  * Place inside LogtoProvider but wrapping App routes.
@@ -19,13 +21,12 @@ export default function AuthSync({ children }: { children: React.ReactNode }) {
 
     const fetchToken = async () => {
       try {
-        // Fetch access token for our backend API
-        const token = await getAccessToken();
+        // Request access token scoped to our API resource (includes roles claim)
+        const token = await getAccessToken(API_RESOURCE);
         if (!cancelled && token) {
           setAuthToken(token);
         }
       } catch {
-        // Token fetch failed — clear auth
         if (!cancelled) setAuthToken(null);
       }
     };

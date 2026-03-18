@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     logto_endpoint: str = ""
     logto_app_id: str = ""
+    logto_api_resource: str = ""
 
     openai_api_key: str = ""
 

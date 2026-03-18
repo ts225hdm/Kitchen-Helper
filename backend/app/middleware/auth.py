@@ -33,7 +33,6 @@ async def get_current_user_id(
     In dev mode (LOGTO_ENDPOINT not set), returns 'dev-user' without checking the token.
     """
     if not settings.logto_endpoint:
-        # Dev mode — no auth required
         return "dev-user"
 
     if not credentials:
@@ -42,17 +41,67 @@ async def get_current_user_id(
     token = credentials.credentials
     try:
         jwks = await _get_jwks()
-        # jose expects a key list
+        # Use API resource as audience if configured, otherwise fall back to app_id
+        audience = settings.logto_api_resource or settings.logto_app_id
         payload = jwt.decode(
             token,
             jwks,
             algorithms=["RS256"],
-            audience=settings.logto_app_id,
+            audience=audience,
             issuer=f"{settings.logto_endpoint}/oidc",
         )
         return payload["sub"]
     except JWTError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
+
+
+def _sync_roles_from_token(token: str, user_id: str, db: Session) -> None:
+    """Sync roles from the JWT 'roles' claim into our DB."""
+    try:
+        # Decode without verification just to read claims (already verified above)
+        payload = jwt.get_unverified_claims(token)
+        token_roles = payload.get("roles", [])
+        if not token_roles:
+            return
+
+        from app.models.user import User, Role, UserRole
+
+        user = db.get(User, user_id)
+        if not user:
+            return
+
+        existing_roles = {ur.role.name for ur in user.user_roles}
+
+        for role_name in token_roles:
+            if role_name in existing_roles:
+                continue
+            # Get or create the role
+            role = db.query(Role).filter(Role.name == role_name).first()
+            if not role:
+                role = Role(name=role_name)
+                db.add(role)
+                db.flush()
+            db.add(UserRole(user_id=user_id, role_id=role.id))
+
+        # Remove roles no longer in token
+        for ur in list(user.user_roles):
+            if ur.role.name not in token_roles:
+                db.delete(ur)
+
+        db.commit()
+    except Exception:
+        db.rollback()
+
+
+async def get_current_user_with_roles(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> str:
+    """Same as get_current_user_id but also syncs roles from the JWT."""
+    user_id = await get_current_user_id(credentials)
+    if settings.logto_endpoint and credentials:
+        _sync_roles_from_token(credentials.credentials, user_id, db)
+    return user_id
 
 
 async def require_premium(

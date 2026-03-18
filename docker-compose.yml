@@ -33,6 +33,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-change_me_in_production}
       LOGTO_ENDPOINT: ${LOGTO_ENDPOINT:-}
       LOGTO_APP_ID: ${LOGTO_APP_ID:-}
+      LOGTO_API_RESOURCE: ${LOGTO_API_RESOURCE:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-EUR}
@@ -49,6 +50,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-}
         VITE_LOGTO_ENDPOINT: ${VITE_LOGTO_ENDPOINT:-}
         VITE_LOGTO_APP_ID: ${VITE_LOGTO_APP_ID:-}
+        VITE_LOGTO_API_RESOURCE: ${VITE_LOGTO_API_RESOURCE:-}
     container_name: kitchen_frontend
     restart: unless-stopped
     depends_on:
