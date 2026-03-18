@@ -49,7 +49,7 @@ async def _get_m2m_token() -> Optional[str]:
                 f"{settings.logto_endpoint}/oidc/token",
                 data={
                     "grant_type": "client_credentials",
-                    "resource": f"{settings.logto_endpoint}/api",
+                    "resource": "https://default.logto.app/api",
                     "scope": "all",
                 },
                 auth=(settings.logto_m2m_app_id, settings.logto_m2m_app_secret),
