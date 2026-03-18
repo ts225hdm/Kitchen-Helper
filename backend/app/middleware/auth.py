@@ -1,9 +1,10 @@
 from typing import Optional
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy.orm import Session
 import httpx
+import time
 
 from app.config import settings
 from app.database import get_db
@@ -14,12 +15,15 @@ bearer_scheme = HTTPBearer(auto_error=False)
 _jwks_cache: Optional[dict] = None
 _jwks_cache_time: float = 0
 
+# Cached M2M token
+_m2m_token: Optional[str] = None
+_m2m_token_expiry: float = 0
+
 
 async def _get_jwks() -> dict:
     global _jwks_cache, _jwks_cache_time
-    import time
     now = time.time()
-    if _jwks_cache and (now - _jwks_cache_time) < 3600:  # Cache for 1 hour
+    if _jwks_cache and (now - _jwks_cache_time) < 3600:
         return _jwks_cache
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.get(f"{settings.logto_endpoint}/oidc/jwks")
@@ -27,6 +31,37 @@ async def _get_jwks() -> dict:
         _jwks_cache = resp.json()
         _jwks_cache_time = now
         return _jwks_cache
+
+
+async def _get_m2m_token() -> Optional[str]:
+    """Get a Management API access token using M2M app credentials."""
+    global _m2m_token, _m2m_token_expiry
+    now = time.time()
+    if _m2m_token and now < _m2m_token_expiry - 60:
+        return _m2m_token
+
+    if not settings.logto_m2m_app_id or not settings.logto_m2m_app_secret:
+        return None
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(
+                f"{settings.logto_endpoint}/oidc/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "resource": f"{settings.logto_endpoint}/api",
+                    "scope": "all",
+                },
+                auth=(settings.logto_m2m_app_id, settings.logto_m2m_app_secret),
+            )
+            if resp.status_code != 200:
+                return None
+            data = resp.json()
+            _m2m_token = data["access_token"]
+            _m2m_token_expiry = now + data.get("expires_in", 3600)
+            return _m2m_token
+    except Exception:
+        return None
 
 
 async def get_current_user_id(
@@ -45,12 +80,11 @@ async def get_current_user_id(
     token = credentials.credentials
     try:
         jwks = await _get_jwks()
-        # Use API resource as audience if configured, otherwise fall back to app_id
         audience = settings.logto_api_resource or settings.logto_app_id
         payload = jwt.decode(
             token,
             jwks,
-            algorithms=["RS256"],
+            algorithms=["RS256", "ES384"],
             audience=audience,
             issuer=f"{settings.logto_endpoint}/oidc",
         )
@@ -59,25 +93,23 @@ async def get_current_user_id(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
 
 
-async def _sync_roles_from_logto(token: str, user_id: str, db: Session) -> None:
-    """Sync roles by calling the Logto userinfo endpoint (works even without roles in JWT)."""
+async def _sync_roles_from_management_api(user_id: str, db: Session) -> None:
+    """Sync roles by calling the Logto Management API with M2M credentials."""
     try:
+        m2m_token = await _get_m2m_token()
+        if not m2m_token:
+            return
+
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
-                f"{settings.logto_endpoint}/oidc/me",
-                headers={"Authorization": f"Bearer {token}"},
+                f"{settings.logto_endpoint}/api/users/{user_id}/roles",
+                headers={"Authorization": f"Bearer {m2m_token}"},
             )
             if resp.status_code != 200:
                 return
-            userinfo = resp.json()
+            logto_roles = resp.json()
 
-        token_roles = userinfo.get("roles", [])
-        if not token_roles:
-            # Also try the JWT claims as fallback
-            payload = jwt.get_unverified_claims(token)
-            token_roles = payload.get("roles", [])
-        if not token_roles:
-            return
+        token_roles = [r["name"] for r in logto_roles]
 
         from app.models.user import User, Role, UserRole
 
@@ -108,17 +140,13 @@ async def _sync_roles_from_logto(token: str, user_id: str, db: Session) -> None:
 
 
 async def get_current_user_with_roles(
-    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> str:
-    """Same as get_current_user_id but also syncs roles from Logto userinfo."""
+    """Same as get_current_user_id but also syncs roles from Logto Management API."""
     user_id = await get_current_user_id(credentials)
     if settings.logto_endpoint:
-        # Use the opaque token (sent via X-Opaque-Token header) for userinfo
-        opaque_token = request.headers.get("X-Opaque-Token")
-        if opaque_token:
-            await _sync_roles_from_logto(opaque_token, user_id, db)
+        await _sync_roles_from_management_api(user_id, db)
     return user_id
 
 

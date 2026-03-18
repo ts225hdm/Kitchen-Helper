@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useLogto } from '@logto/react';
-import { setAuthToken, setOpaqueToken } from '../api/client';
+import { setAuthToken } from '../api/client';
 
 const API_RESOURCE = import.meta.env.VITE_LOGTO_API_RESOURCE || undefined;
 
@@ -17,16 +17,10 @@ export default function AuthSync({ children }: { children: React.ReactNode }) {
       const token = await getAccessToken(API_RESOURCE);
       if (token) {
         setAuthToken(token);
+        setTokenReady(true);
       }
-      // Also fetch the opaque token (no resource) which contains roles
-      const opaqueToken = await getAccessToken();
-      if (opaqueToken) {
-        setOpaqueToken(opaqueToken);
-      }
-      setTokenReady(true);
     } catch {
       setAuthToken(null);
-      setOpaqueToken(null);
       setTokenReady(true);
     }
   }, [getAccessToken]);
@@ -34,7 +28,6 @@ export default function AuthSync({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) {
       setAuthToken(null);
-      setOpaqueToken(null);
       setTokenReady(true);
       return;
     }

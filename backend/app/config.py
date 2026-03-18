@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     logto_endpoint: str = ""
     logto_app_id: str = ""
     logto_api_resource: str = ""
+    logto_m2m_app_id: str = ""
+    logto_m2m_app_secret: str = ""
 
     openai_api_key: str = ""
 
