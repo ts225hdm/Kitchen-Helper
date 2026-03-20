@@ -1,22 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { recipesApi, Recipe, CreateRecipe } from '../api/recipes';
+import { recipesApi, Recipe, RecipeSuggestion, CreateRecipe } from '../api/recipes';
 import { foodItemsApi, FoodItem } from '../api/foodItems';
 import RecipeFormModal from '../components/RecipeFormModal';
 import { useToast } from '../components/Toast';
+import { useUser } from '../hooks/useUser';
+
+type Tab = 'recipes' | 'ai';
 
 export default function Recipes() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const toast = useToast();
+  const { isPremium, loading: userLoading } = useUser();
+  const [tab, setTab] = useState<Tab>('recipes');
+
+  // Recipes state
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const toast = useToast();
+
+  // AI state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [suggestions, setSuggestions] = useState<RecipeSuggestion[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [savedIdx, setSavedIdx] = useState<Set<number>>(new Set());
 
   const load = () => {
     Promise.all([recipesApi.getAll(), foodItemsApi.getAll()])
-      .then(([recs, items]) => { setRecipes(recs); setFoodItems(items); })
+      .then(([recs, items]) => {
+        setRecipes(recs);
+        setFoodItems(items);
+        setSelectedIds(new Set(items.map((i) => i.id)));
+      })
       .finally(() => setLoading(false));
   };
 
@@ -35,73 +52,313 @@ export default function Recipes() {
     load();
   };
 
+  // AI Chef handlers
+  const toggleItem = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === foodItems.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(foodItems.map((i) => i.id)));
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (selectedIds.size === 0) return;
+    setAiLoading(true);
+    setSuggestions([]);
+    setSavedIdx(new Set());
+    try {
+      const ids = Array.from(selectedIds);
+      const recipes = await recipesApi.getRecommendations(i18n.language, ids);
+      setSuggestions(recipes);
+    } catch {
+      toast.error(t('aiChef.failedToGet'));
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleSaveAi = async (recipe: RecipeSuggestion, idx: number) => {
+    try {
+      const data: CreateRecipe = { ...recipe, is_ai_generated: true };
+      await recipesApi.create(data);
+      setSavedIdx((prev) => new Set(prev).add(idx));
+      toast.success(t('aiChef.saved'));
+      load();
+    } catch {
+      toast.error(t('aiChef.failedToSave'));
+    }
+  };
+
+  const isExpiringSoon = (item: FoodItem) => {
+    if (!item.expiry_date) return false;
+    const soon = new Date();
+    soon.setDate(soon.getDate() + 3);
+    return new Date(item.expiry_date) <= soon;
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin" /></div>;
   }
 
+  const tabCls = (active: boolean) =>
+    `px-4 py-2.5 text-sm font-medium rounded-lg transition-colors min-h-[40px] ${
+      active
+        ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+    }`;
+
   return (
     <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{t('recipes.title')}</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{recipes.length} {t('recipes.savedRecipes')}</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium min-h-[44px]"
-        >
-          {t('recipes.newRecipe')}
+        {tab === 'recipes' && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors text-sm font-medium min-h-[44px]"
+          >
+            {t('recipes.newRecipe')}
+          </button>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-xl p-1">
+        <button onClick={() => setTab('recipes')} className={tabCls(tab === 'recipes')}>
+          <span className="flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            {t('recipes.savedRecipes')}
+          </span>
+        </button>
+        <button onClick={() => setTab('ai')} className={tabCls(tab === 'ai')}>
+          <span className="flex items-center gap-1.5">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+            </svg>
+            {t('recipes.aiSuggestions')}
+          </span>
         </button>
       </div>
 
-      {recipes.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </div>
-          <p className="text-lg font-medium text-gray-700 dark:text-gray-300">{t('recipes.noRecipes')}</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('recipes.noRecipesHint')}</p>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recipes.map((recipe) => (
-            <div key={recipe.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow">
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-2">
-                  <h3 className="font-semibold text-gray-900 dark:text-white leading-snug">{recipe.name}</h3>
-                  {recipe.is_ai_generated && (
-                    <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded-full font-medium flex-shrink-0">AI</span>
-                  )}
-                </div>
-                {recipe.description && (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">{recipe.description}</p>
-                )}
-                <div className="flex items-center gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500">
-                  {recipe.prep_time_min && <span>{t('recipes.prep')}: {recipe.prep_time_min}m</span>}
-                  {recipe.cook_time_min && <span>{t('recipes.cook')}: {recipe.cook_time_min}m</span>}
-                  <span>{recipe.servings} {recipe.servings !== 1 ? t('common.servings') : t('common.serving')}</span>
-                </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{recipe.ingredients.length} ingredients &middot; {recipe.steps.length} steps</p>
+      {/* Recipes tab */}
+      {tab === 'recipes' && (
+        <>
+          {recipes.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
               </div>
-              <div className="px-4 sm:px-5 pb-4 flex gap-2">
-                <Link
-                  to={`/recipes/${recipe.id}`}
-                  className="flex-1 text-center text-sm px-3 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors font-medium min-h-[44px] flex items-center justify-center"
-                >
-                  {t('recipes.view')}
-                </Link>
-                <button
-                  onClick={() => handleDelete(recipe.id)}
-                  className="px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors min-h-[44px]"
-                >
-                  {t('common.delete')}
-                </button>
-              </div>
+              <p className="text-lg font-medium text-gray-700 dark:text-gray-300">{t('recipes.noRecipes')}</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('recipes.noRecipesHint')}</p>
             </div>
-          ))}
-        </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {recipes.map((recipe) => (
+                <div key={recipe.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden hover:shadow-md dark:hover:shadow-lg dark:hover:shadow-black/20 transition-shadow">
+                  <div className="p-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-white leading-snug">{recipe.name}</h3>
+                      {recipe.is_ai_generated && (
+                        <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded-full font-medium flex-shrink-0">AI</span>
+                      )}
+                    </div>
+                    {recipe.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 line-clamp-2">{recipe.description}</p>
+                    )}
+                    <div className="flex items-center gap-3 mt-3 text-xs text-gray-400 dark:text-gray-500">
+                      {recipe.prep_time_min && <span>{t('recipes.prep')}: {recipe.prep_time_min}m</span>}
+                      {recipe.cook_time_min && <span>{t('recipes.cook')}: {recipe.cook_time_min}m</span>}
+                      <span>{recipe.servings} {recipe.servings !== 1 ? t('common.servings') : t('common.serving')}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{recipe.ingredients.length} ingredients &middot; {recipe.steps.length} steps</p>
+                  </div>
+                  <div className="px-4 sm:px-5 pb-4 flex gap-2">
+                    <Link
+                      to={`/recipes/${recipe.id}`}
+                      className="flex-1 text-center text-sm px-3 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors font-medium min-h-[44px] flex items-center justify-center"
+                    >
+                      {t('recipes.view')}
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(recipe.id)}
+                      className="px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors min-h-[44px]"
+                    >
+                      {t('common.delete')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* AI Chef tab */}
+      {tab === 'ai' && (
+        <>
+          {!userLoading && !isPremium ? (
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 sm:p-8 text-center space-y-4">
+              <div className="w-16 h-16 bg-purple-100 dark:bg-purple-500/20 rounded-full flex items-center justify-center mx-auto">
+                <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('premium.locked')}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">{t('premium.testPhase')}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {t('premium.contactUs')}{' '}
+                <a href="mailto:schoenfelddev@gmail.com" className="text-purple-600 dark:text-purple-400 font-medium hover:underline">
+                  schoenfelddev@gmail.com
+                </a>
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Ingredient selection */}
+              {foodItems.length > 0 && (
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">{t('aiChef.selectIngredients')}</h2>
+                    <button onClick={toggleAll} className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-medium">
+                      {selectedIds.size === foodItems.length ? t('aiChef.deselectAll') : t('aiChef.selectAll')}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {foodItems.map((item) => {
+                      const selected = selectedIds.has(item.id);
+                      const expiring = isExpiringSoon(item);
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => toggleItem(item.id)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all border ${
+                            selected
+                              ? expiring
+                                ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/30 text-amber-700 dark:text-amber-400'
+                                : 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400'
+                              : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-500'
+                          }`}
+                        >
+                          {selected && <span className="mr-1">&#10003;</span>}
+                          {expiring && <span className="mr-0.5">&#9888;</span>}
+                          {item.name}
+                          <span className="ml-1 text-xs opacity-60">{item.quantity} {t(`units.${item.unit}`, item.unit)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {t('aiChef.selectedCount', { count: selectedIds.size, total: foodItems.length })}
+                    </p>
+                    <button
+                      onClick={handleGenerate}
+                      disabled={aiLoading || selectedIds.size === 0}
+                      className="px-5 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
+                    >
+                      {aiLoading ? t('aiChef.thinking') : t('aiChef.getSuggestions')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Empty kitchen */}
+              {foodItems.length === 0 && (
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 bg-purple-100 dark:bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                    </svg>
+                  </div>
+                  <p className="text-lg font-medium text-gray-700 dark:text-gray-300">{t('aiChef.emptyKitchen')}</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">{t('aiChef.emptyKitchenHint')}</p>
+                </div>
+              )}
+
+              {/* Loading suggestions */}
+              {aiLoading && (
+                <div className="text-center py-12">
+                  <div className="w-10 h-10 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">{t('aiChef.thinking')}</p>
+                </div>
+              )}
+
+              {/* Suggestions */}
+              {suggestions.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('aiChef.suggestedRecipes')}</h2>
+                  {suggestions.map((recipe, idx) => (
+                    <div key={idx} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{recipe.name}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{recipe.description}</p>
+                        </div>
+                        <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400 rounded-full font-medium flex-shrink-0">AI</span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-400 dark:text-gray-500">
+                        <span>{recipe.servings} {t('common.servings')}</span>
+                        <span>{t('recipes.prep')}: {recipe.prep_time_min}m</span>
+                        <span>{t('recipes.cook')}: {recipe.cook_time_min}m</span>
+                        <span>{recipe.ingredients.length} {t('recipes.ingredients')}</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">{t('recipes.ingredients')}</h4>
+                          <ul className="space-y-0.5">
+                            {recipe.ingredients.map((ing, i) => (
+                              <li key={i} className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                                {ing.quantity} {t(`units.${ing.unit}`, ing.unit)} {ing.name}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-1">{t('recipes.instructions')}</h4>
+                          <ol className="space-y-1">
+                            {recipe.steps.map((step) => (
+                              <li key={step.step_number} className="text-gray-500 dark:text-gray-400 text-xs">
+                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">{step.step_number}.</span> {step.instruction}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleSaveAi(recipe, idx)}
+                        disabled={savedIdx.has(idx)}
+                        className={`w-full text-sm font-medium py-3 rounded-lg transition-colors min-h-[48px] ${
+                          savedIdx.has(idx)
+                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-default'
+                            : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
+                        }`}
+                      >
+                        {savedIdx.has(idx) ? t('aiChef.saved') : t('aiChef.saveToRecipes')}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {showModal && (

@@ -8,10 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Kitchen from './pages/Kitchen';
 import Recipes from './pages/Recipes';
 import RecipeDetail from './pages/RecipeDetail';
-import GroceryTrips from './pages/GroceryTrips';
-import EatingOut from './pages/EatingOut';
 import Spending from './pages/Spending';
-import AIRecommendations from './pages/AIRecommendations';
 import AdminConsole from './pages/AdminConsole';
 import Profile from './pages/Profile';
 import JoinHousehold from './pages/JoinHousehold';
@@ -33,13 +30,14 @@ export default function App() {
               <Route path="/kitchen" element={<Kitchen />} />
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/recipes/:id" element={<RecipeDetail />} />
-              <Route path="/ai-chef" element={<AIRecommendations />} />
-              <Route path="/grocery-trips" element={<GroceryTrips />} />
-              <Route path="/eating-out" element={<EatingOut />} />
               <Route path="/spending" element={<Spending />} />
               <Route path="/admin" element={<AdminConsole />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/join" element={<JoinHousehold />} />
+              {/* Redirects for old routes */}
+              <Route path="/ai-chef" element={<Navigate to="/recipes" replace />} />
+              <Route path="/grocery-trips" element={<Navigate to="/spending" replace />} />
+              <Route path="/eating-out" element={<Navigate to="/spending" replace />} />
             </Route>
           </Routes>
         </BrowserRouter>

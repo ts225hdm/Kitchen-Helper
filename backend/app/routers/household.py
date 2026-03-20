@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.middleware.auth import get_current_user_id
 from app.models.household import Household, HouseholdMember
+from app.models.food_item import FoodItem
 from app.models.user import User
 from app.schemas.household import HouseholdCreate, HouseholdOut, HouseholdMemberOut, JoinHouseholdRequest
 
@@ -69,6 +70,10 @@ def create_household(
 
     member = HouseholdMember(user_id=user_id, household_id=household.id, role="owner")
     db.add(member)
+    # Migrate user's existing food items to the new household
+    db.query(FoodItem).filter(
+        FoodItem.user_id == user_id, FoodItem.household_id.is_(None)
+    ).update({"household_id": household.id})
     db.commit()
     db.refresh(household)
     return _household_to_out(household)
@@ -90,6 +95,10 @@ def join_household(
 
     member = HouseholdMember(user_id=user_id, household_id=household.id, role="member")
     db.add(member)
+    # Migrate user's existing food items to the household they're joining
+    db.query(FoodItem).filter(
+        FoodItem.user_id == user_id, FoodItem.household_id.is_(None)
+    ).update({"household_id": household.id})
     db.commit()
     db.refresh(household)
     return _household_to_out(household)

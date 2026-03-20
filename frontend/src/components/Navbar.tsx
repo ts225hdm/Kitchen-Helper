@@ -9,14 +9,8 @@ const navItems = [
   { path: '/dashboard', i18nKey: 'nav.dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
   { path: '/kitchen', i18nKey: 'nav.kitchen', icon: 'M4 7h16M4 7V5a1 1 0 011-1h14a1 1 0 011 1v2M4 7l1 12a2 2 0 002 2h10a2 2 0 002-2l1-12' },
   { path: '/recipes', i18nKey: 'nav.recipes', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
-  { path: '/ai-chef', i18nKey: 'nav.aiChef', icon: 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z' },
-  { path: '/grocery-trips', i18nKey: 'nav.grocery', icon: 'M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z' },
-  { path: '/eating-out', i18nKey: 'nav.eatingOut', icon: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z' },
   { path: '/spending', i18nKey: 'nav.spending', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
 ];
-
-// Bottom bar shows these 5 (most used on mobile), rest in "more" menu
-const BOTTOM_NAV_PATHS = ['/dashboard', '/kitchen', '/grocery-trips', '/recipes', '/spending'];
 
 export default function Navbar() {
   const location = useLocation();
@@ -33,14 +27,11 @@ export default function Navbar() {
     localStorage.setItem('language', next);
   };
 
-  const bottomNavItems = navItems.filter((i) => BOTTOM_NAV_PATHS.includes(i.path));
-  const moreNavItems = navItems.filter((i) => !BOTTOM_NAV_PATHS.includes(i.path));
   const isActive = (path: string) => location.pathname === path || (path !== '/dashboard' && location.pathname.startsWith(path));
-  const isMoreActive = moreNavItems.some((i) => isActive(i.path));
 
   return (
     <>
-      {/* Top bar — desktop full nav, mobile slim header */}
+      {/* Top bar */}
       <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/60 dark:border-gray-800/60 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-14 lg:h-16">
@@ -150,7 +141,7 @@ export default function Navbar() {
       {/* Bottom tab bar — mobile only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200/60 dark:border-gray-800/60 safe-area-bottom">
         <div className="flex items-stretch justify-around px-1">
-          {bottomNavItems.map((item) => {
+          {navItems.map((item) => {
             const active = isActive(item.path);
             return (
               <Link
@@ -169,46 +160,25 @@ export default function Navbar() {
               </Link>
             );
           })}
-          {/* More button for remaining nav items */}
+          {/* More button for admin + profile + sign out */}
           <div className="relative flex-1">
             <button
               onClick={() => setMoreOpen(!moreOpen)}
               className={`flex flex-col items-center justify-center py-2 px-1 min-h-[56px] w-full transition-colors ${
-                isMoreActive || moreOpen
+                moreOpen || isActive('/profile') || isActive('/admin')
                   ? 'text-emerald-600 dark:text-emerald-400'
                   : 'text-gray-400 dark:text-gray-500 active:text-gray-600 dark:active:text-gray-300'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isMoreActive ? 2 : 1.5}>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
               </svg>
-              <span className="text-[10px] mt-0.5 font-medium leading-tight">{t('nav.more', 'More')}</span>
+              <span className="text-[10px] mt-0.5 font-medium leading-tight">{t('nav.more')}</span>
             </button>
-            {/* More popup */}
             {moreOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMoreOpen(false)} />
                 <div className="absolute bottom-full right-0 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 min-w-[180px] overflow-hidden">
-                  {moreNavItems.map((item) => {
-                    const active = isActive(item.path);
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setMoreOpen(false)}
-                        className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors ${
-                          active
-                            ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                        }`}
-                      >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                        </svg>
-                        {t(item.i18nKey)}
-                      </Link>
-                    );
-                  })}
                   {isAdmin && (
                     <Link
                       to="/admin"
