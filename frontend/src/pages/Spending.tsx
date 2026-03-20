@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { spendingApi, SpendingSummary } from '../api/spending';
 
@@ -22,7 +22,7 @@ export default function Spending() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleLoad = async () => {
+  const handleLoad = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -33,7 +33,11 @@ export default function Spending() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [start, end, currency, t]);
+
+  useEffect(() => {
+    handleLoad();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const pct = summary && summary.total > 0
     ? Math.round((summary.grocery_total / summary.total) * 100)
