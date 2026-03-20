@@ -44,12 +44,29 @@ export default function Kitchen() {
     load();
   };
 
+  const [reduceId, setReduceId] = useState<string | null>(null);
+  const [reduceAmount, setReduceAmount] = useState(1);
+
   const handleDelete = async (id: string) => {
     const confirmed = await toast.confirm(t('kitchen.deleteConfirm'));
     if (!confirmed) return;
     await foodItemsApi.delete(id);
     setItems((prev) => prev.filter((i) => i.id !== id));
     toast.success(t('kitchen.deleted'));
+  };
+
+  const handleReduce = async (item: FoodItem) => {
+    const newQty = item.quantity - reduceAmount;
+    if (newQty <= 0) {
+      await foodItemsApi.delete(item.id);
+      setItems((prev) => prev.filter((i) => i.id !== item.id));
+    } else {
+      await foodItemsApi.update(item.id, { quantity: newQty });
+      setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, quantity: newQty } : i));
+    }
+    setReduceId(null);
+    setReduceAmount(1);
+    toast.success(t('kitchen.quantityReduced'));
   };
 
   const filtered = items.filter((item) => {
@@ -209,6 +226,16 @@ export default function Kitchen() {
                           &#9650;
                         </button>
                       )}
+                      {/* Reduce quantity */}
+                      <button
+                        onClick={() => { setReduceId(reduceId === item.id ? null : item.id); setReduceAmount(1); }}
+                        className="p-2.5 text-gray-300 dark:text-gray-600 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
+                        title={t('kitchen.reduceQuantity')}
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H6" />
+                        </svg>
+                      </button>
                       <button
                         onClick={() => { setEditItem(item); setShowModal(true); }}
                         className="p-2.5 text-gray-300 dark:text-gray-600 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors min-w-[40px] min-h-[40px] flex items-center justify-center"
@@ -230,6 +257,37 @@ export default function Kitchen() {
                     </div>
                   </div>
                 </div>
+
+                {reduceId === item.id && (
+                  <div className="px-4 pb-3 border-t border-gray-50 dark:border-gray-800 pt-3">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{t('kitchen.removeAmount')}</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        max={item.quantity}
+                        step="0.01"
+                        value={reduceAmount}
+                        onChange={(e) => setReduceAmount(parseFloat(e.target.value) || 0)}
+                        className="w-20 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      />
+                      <span className="text-xs text-gray-400 dark:text-gray-500">{t(`units.${item.unit}`, item.unit)}</span>
+                      <button
+                        onClick={() => handleReduce(item)}
+                        disabled={reduceAmount <= 0}
+                        className="px-3 py-1.5 text-xs font-medium bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-lg hover:bg-amber-200 dark:hover:bg-amber-500/30 disabled:opacity-50 transition-colors"
+                      >
+                        {reduceAmount >= item.quantity ? t('common.delete') : t('kitchen.reduce')}
+                      </button>
+                      <button
+                        onClick={() => setReduceId(null)}
+                        className="px-2 py-1.5 text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {expanded && item.nutrition && (
                   <div className="px-4 pb-4 border-t border-gray-50 dark:border-gray-800 pt-3">

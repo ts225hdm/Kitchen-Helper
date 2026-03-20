@@ -43,7 +43,15 @@ export default function FoodItemModal({
     setSaving(true);
     setError('');
     try {
-      await onSave(form);
+      const submitData = { ...form };
+      // If nutrition section is visible, send explicit values so backend can update/clear
+      if (showNutrition) {
+        submitData.calories_kcal = form.calories_kcal ?? 0;
+        submitData.protein_g = form.protein_g ?? 0;
+        submitData.carbs_g = form.carbs_g ?? 0;
+        submitData.fat_g = form.fat_g ?? 0;
+      }
+      await onSave(submitData);
       onClose();
     } catch {
       setError(t('foodModal.failedToSave'));

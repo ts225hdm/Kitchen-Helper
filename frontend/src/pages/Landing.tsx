@@ -1,5 +1,36 @@
+import { useEffect, useRef } from 'react';
 import { useLogto } from '@logto/react';
 import { useTranslation } from 'react-i18next';
+
+function useFadeIn() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add('opacity-100', 'translate-y-0');
+          el.classList.remove('opacity-0', 'translate-y-8');
+          observer.unobserve(el);
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
+function FadeIn({ children, className = '', delay = '' }: { children: React.ReactNode; className?: string; delay?: string }) {
+  const ref = useFadeIn();
+  return (
+    <div ref={ref} className={`opacity-0 translate-y-8 transition-all duration-700 ease-out ${delay} ${className}`}>
+      {children}
+    </div>
+  );
+}
 
 const features = [
   {
@@ -93,6 +124,7 @@ export default function Landing() {
 
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 sm:pb-20 text-center">
+        <FadeIn>
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-semibold mb-6">
           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
@@ -120,8 +152,10 @@ export default function Landing() {
             {t('landing.getStarted')}
           </button>
         </div>
+        </FadeIn>
 
         {/* Hero image */}
+        <FadeIn>
         <div className="mt-12 sm:mt-16 relative max-w-4xl mx-auto">
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/20 to-teal-400/20 rounded-2xl blur-3xl -z-10" />
           <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl shadow-emerald-500/10 overflow-hidden p-1">
@@ -151,22 +185,25 @@ export default function Landing() {
             </div>
           </div>
         </div>
+        </FadeIn>
       </section>
 
       {/* Features */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <FadeIn>
         <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white text-center mb-3">
           {t('landing.featuresTitle')}
         </h2>
         <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 text-center max-w-xl mx-auto mb-10 sm:mb-14">
           {t('landing.featuresSubtitle')}
         </p>
+        </FadeIn>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {features.map((f) => (
+          {features.map((f, i) => (
+            <FadeIn key={f.titleKey} delay={`delay-[${i * 100}ms]`}>
             <div
-              key={f.titleKey}
-              className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 sm:p-6 hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all"
+              className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-5 sm:p-6 hover:shadow-lg hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all h-full"
             >
               <div className={`w-10 h-10 ${f.bg} rounded-lg flex items-center justify-center mb-4`}>
                 <svg className={`w-5 h-5 text-transparent bg-clip-text`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
@@ -181,12 +218,14 @@ export default function Landing() {
               <h3 className="font-semibold text-gray-900 dark:text-white mb-1.5">{t(f.titleKey)}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{t(f.descKey)}</p>
             </div>
+            </FadeIn>
           ))}
         </div>
       </section>
 
       {/* CTA */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <FadeIn>
         <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl p-8 sm:p-12 text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">{t('landing.ctaTitle')}</h2>
           <p className="text-emerald-100 text-sm sm:text-base max-w-lg mx-auto mb-6">{t('landing.ctaDescription')}</p>
@@ -197,6 +236,7 @@ export default function Landing() {
             {t('landing.ctaButton')}
           </button>
         </div>
+        </FadeIn>
       </section>
 
       {/* Footer */}

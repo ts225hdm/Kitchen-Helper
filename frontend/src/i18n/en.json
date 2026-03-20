@@ -60,7 +60,11 @@
     "expiringSoonBadge": "Expiring soon",
     "details": "details",
     "deleteConfirm": "Delete this food item?",
-    "deleted": "Item deleted"
+    "deleted": "Item deleted",
+    "reduceQuantity": "Remove some",
+    "removeAmount": "Remove",
+    "reduce": "Remove",
+    "quantityReduced": "Quantity updated"
   },
   "foodModal": {
     "addTitle": "Add to Kitchen",

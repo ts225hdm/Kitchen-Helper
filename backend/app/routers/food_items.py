@@ -14,8 +14,11 @@ router = APIRouter(prefix="/food-items", tags=["food-items"])
 
 def _sync_nutrition(db: Session, food_item_id: uuid.UUID, data: FoodItemCreate | FoodItemUpdate):
     """Create or update the Nutrition record from inline nutrition fields."""
-    cal = getattr(data, 'calories_kcal', None)
-    if cal is None:
+    has_any = any(
+        getattr(data, f, None) is not None
+        for f in ('calories_kcal', 'protein_g', 'carbs_g', 'fat_g')
+    )
+    if not has_any:
         return
     nutrition = db.query(Nutrition).filter(Nutrition.food_item_id == food_item_id).first()
     values = {
@@ -25,6 +28,10 @@ def _sync_nutrition(db: Session, food_item_id: uuid.UUID, data: FoodItemCreate |
         "fat_total_g": data.fat_g or 0,
         "carbohydrates_total_g": data.carbs_g or 0,
     }
+    # If all values are 0 and nutrition exists, remove it
+    if all(v == 0 for k, v in values.items() if k != "serving_size_g") and nutrition:
+        db.delete(nutrition)
+        return
     if nutrition:
         for k, v in values.items():
             setattr(nutrition, k, v)
