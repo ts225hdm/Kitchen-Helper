@@ -9,6 +9,7 @@ interface UserData {
   name: string | null;
   avatar: string | null;
   roles: string[];
+  household_id: string | null;
 }
 
 interface UserContextValue {

@@ -10,7 +10,8 @@
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "more": "More",
-    "admin": "Admin"
+    "admin": "Admin",
+    "profile": "Profile"
   },
   "common": {
     "cancel": "Cancel",
@@ -275,6 +276,35 @@
     "suspend": "Suspend",
     "unsuspend": "Unsuspend",
     "suspended": "SUSPENDED"
+  },
+  "profile": {
+    "title": "Profile",
+    "personalInfo": "Personal Info",
+    "name": "Name",
+    "namePlaceholder": "Your name",
+    "email": "Email",
+    "saved": "Profile saved",
+    "saveFailed": "Failed to save profile",
+    "household": "Household",
+    "noHousehold": "You're not part of a household yet.",
+    "createHousehold": "Create Household",
+    "joinHousehold": "Join Household",
+    "leaveHousehold": "Leave Household",
+    "leaveConfirm": "Are you sure you want to leave this household?",
+    "householdName": "Household name",
+    "householdError": "Something went wrong. Please try again.",
+    "inviteCodePlaceholder": "Paste invite code",
+    "invalidInvite": "Invalid or expired invite code.",
+    "join": "Join",
+    "copyInvite": "Copy Invite Link",
+    "linkCopied": "Invite link copied!",
+    "members": "members",
+    "owner": "Owner",
+    "joinedHousehold": "Successfully joined household!",
+    "redirecting": "Redirecting...",
+    "goToProfile": "Go to Profile",
+    "nameRequired": "Please set your name to continue",
+    "nameRequiredHint": "We need your name so household members can identify you."
   },
   "categories": {
     "dairy": "Dairy",

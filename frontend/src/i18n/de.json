@@ -10,7 +10,8 @@
     "signIn": "Anmelden",
     "signOut": "Abmelden",
     "more": "Mehr",
-    "admin": "Admin"
+    "admin": "Admin",
+    "profile": "Profil"
   },
   "common": {
     "cancel": "Abbrechen",
@@ -275,6 +276,35 @@
     "suspend": "Sperren",
     "unsuspend": "Entsperren",
     "suspended": "GESPERRT"
+  },
+  "profile": {
+    "title": "Profil",
+    "personalInfo": "Persönliche Daten",
+    "name": "Name",
+    "namePlaceholder": "Dein Name",
+    "email": "E-Mail",
+    "saved": "Profil gespeichert",
+    "saveFailed": "Profil konnte nicht gespeichert werden",
+    "household": "Haushalt",
+    "noHousehold": "Du bist noch keinem Haushalt zugeordnet.",
+    "createHousehold": "Haushalt erstellen",
+    "joinHousehold": "Haushalt beitreten",
+    "leaveHousehold": "Haushalt verlassen",
+    "leaveConfirm": "Möchtest du diesen Haushalt wirklich verlassen?",
+    "householdName": "Haushaltsname",
+    "householdError": "Etwas ist schiefgelaufen. Bitte erneut versuchen.",
+    "inviteCodePlaceholder": "Einladungscode einfügen",
+    "invalidInvite": "Ungültiger oder abgelaufener Einladungscode.",
+    "join": "Beitreten",
+    "copyInvite": "Einladungslink kopieren",
+    "linkCopied": "Einladungslink kopiert!",
+    "members": "Mitglieder",
+    "owner": "Besitzer",
+    "joinedHousehold": "Erfolgreich dem Haushalt beigetreten!",
+    "redirecting": "Weiterleitung...",
+    "goToProfile": "Zum Profil",
+    "nameRequired": "Bitte gib deinen Namen an, um fortzufahren",
+    "nameRequiredHint": "Wir benötigen deinen Namen, damit Haushaltsmitglieder dich erkennen können."
   },
   "categories": {
     "dairy": "Milchprodukte",

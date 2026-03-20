@@ -17,6 +17,7 @@ class UserOut(BaseModel):
     avatar: Optional[str] = None
     created_at: datetime
     roles: List[str] = []
+    household_id: Optional[str] = None
     model_config = {"from_attributes": True}
 
 

@@ -1,7 +1,19 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation, Navigate } from 'react-router-dom';
 import Navbar from './Navbar';
+import { useUser } from '../hooks/useUser';
 
 export default function Layout() {
+  const { user, loading } = useUser();
+  const location = useLocation();
+
+  // Redirect to profile if name not set (but allow /profile and /join pages)
+  const nameExemptPaths = ['/profile', '/join'];
+  const needsName = !loading && user && !user.name && !nameExemptPaths.includes(location.pathname);
+
+  if (needsName) {
+    return <Navigate to="/profile" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
       <Navbar />

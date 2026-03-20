@@ -5,11 +5,19 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.middleware.auth import get_current_user_id
 from app.models.food_item import FoodItem
 from app.models.nutrition import Nutrition
+from app.models.household import HouseholdMember
 from app.schemas.food_item import FoodItemCreate, FoodItemUpdate, FoodItemOut
 
 router = APIRouter(prefix="/food-items", tags=["food-items"])
+
+
+def _get_household_id(user_id: str, db: Session):
+    """Get the user's household ID, or None."""
+    member = db.query(HouseholdMember).filter(HouseholdMember.user_id == user_id).first()
+    return member.household_id if member else None
 
 
 def _sync_nutrition(db: Session, food_item_id: uuid.UUID, data: FoodItemCreate | FoodItemUpdate):
@@ -41,8 +49,17 @@ def _sync_nutrition(db: Session, food_item_id: uuid.UUID, data: FoodItemCreate |
 
 
 @router.get("/", response_model=List[FoodItemOut])
-def list_food_items(db: Session = Depends(get_db)):
-    return db.query(FoodItem).order_by(FoodItem.created_at.desc()).all()
+def list_food_items(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    household_id = _get_household_id(user_id, db)
+    query = db.query(FoodItem)
+    if household_id:
+        query = query.filter(FoodItem.household_id == household_id)
+    else:
+        query = query.filter(FoodItem.household_id.is_(None))
+    return query.order_by(FoodItem.created_at.desc()).all()
 
 
 @router.get("/{item_id}", response_model=FoodItemOut)
@@ -54,12 +71,19 @@ def get_food_item(item_id: uuid.UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=FoodItemOut, status_code=status.HTTP_201_CREATED)
-def create_food_item(data: FoodItemCreate, db: Session = Depends(get_db)):
+def create_food_item(
+    data: FoodItemCreate,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    household_id = _get_household_id(user_id, db)
+    hh_filter = FoodItem.household_id == household_id if household_id else FoodItem.household_id.is_(None)
     existing = (
         db.query(FoodItem)
         .filter(
             func.lower(FoodItem.name) == data.name.lower(),
             FoodItem.unit == data.unit,
+            hh_filter,
         )
         .first()
     )
@@ -73,7 +97,7 @@ def create_food_item(data: FoodItemCreate, db: Session = Depends(get_db)):
         return existing
 
     item_data = data.model_dump(exclude={"calories_kcal", "protein_g", "carbs_g", "fat_g"})
-    item = FoodItem(**item_data)
+    item = FoodItem(**item_data, household_id=household_id)
     db.add(item)
     db.flush()
     _sync_nutrition(db, item.id, data)

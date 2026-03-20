@@ -13,6 +13,8 @@ import EatingOut from './pages/EatingOut';
 import Spending from './pages/Spending';
 import AIRecommendations from './pages/AIRecommendations';
 import AdminConsole from './pages/AdminConsole';
+import Profile from './pages/Profile';
+import JoinHousehold from './pages/JoinHousehold';
 import Callback from './pages/Callback';
 
 export default function App() {
@@ -36,6 +38,8 @@ export default function App() {
               <Route path="/eating-out" element={<EatingOut />} />
               <Route path="/spending" element={<Spending />} />
               <Route path="/admin" element={<AdminConsole />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/join" element={<JoinHousehold />} />
             </Route>
           </Routes>
         </BrowserRouter>

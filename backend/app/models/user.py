@@ -29,6 +29,7 @@ class User(Base):
     is_suspended: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
     user_roles: Mapped[List["UserRole"]] = relationship("UserRole", back_populates="user", cascade="all, delete-orphan")
+    household_members: Mapped[List["HouseholdMember"]] = relationship("HouseholdMember", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserRole(Base):
