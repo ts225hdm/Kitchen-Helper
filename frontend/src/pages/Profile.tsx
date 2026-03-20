@@ -102,10 +102,6 @@ export default function Profile() {
           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{t('profile.name')} *</label>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder={t('profile.namePlaceholder')} />
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">{t('profile.email')}</label>
-          <input type="text" value={user?.email || ''} disabled className={`${inputClass} opacity-60`} />
-        </div>
         <button
           onClick={saveName}
           disabled={saving || !name.trim()}
